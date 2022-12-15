@@ -1,0 +1,207 @@
+#!/usr/bin/python
+# -*- coding: UTF-8 -*-
+# Description: 
+# Dealer will deal cards to 2 players ramdomly, each player has 27 cards in hand. 
+# 2 players compare cards.
+# Game ends when 27 cards are dealed, the player who has strongest ones wins.
+# 57 cards: 
+import random
+import time
+
+# generate timer
+def time_Ymd(a='%Y%m%d %H:%M:%S'):
+    return time.strftime(a)
+#print(time_Ymd())
+
+# recording time
+def statuslog(func):
+    def _log(*args, **kwargs):
+        print(func.__name__+"  start time :{0}".format(time_Ymd()))
+        ret = func(*args, **kwargs)
+        print("end time :{0}".format(time_Ymd()))
+        return ret
+    return _log
+
+# Define card game. 
+# 4 suits: '♥', '♠', '♦', '♣'
+# Ransk: 2, 3, 4, 5, 6, 7, 8, 9, 10, J、Q、K、Black Joker (use B to represent)、Red Joker (use R to represent)
+class PlayCard():
+    def __init__(self):
+    
+        self.start_numbers=2
+        self.end_numbers=11
+        self.types = ['♥', '♠', '♦', '♣']
+        self.JQK = ['J', 'Q', 'K']
+        self.A = 'A'
+        self.play_cards = []
+        self.play_cards_random = []
+        self.play_card()
+
+    def play_card(self):
+        
+        for type in self.types:
+            self.play_cards.append(type+self.A)
+            for num in range(self.start_numbers,self.end_numbers):
+                self.play_cards.append(type+str(num))
+            for JJQQKK in self.JQK:
+                self.play_cards.append(type+JJQQKK)
+        self.play_cards.append('R')
+        self.play_cards.append('B')
+        return self.play_cards
+
+# Generate deck randomly
+    def random_play_card(self):
+        number_1 = 54
+        while number_1 >0:
+            number_1-=1
+            a = int(random.randint(0, number_1))
+            self.play_cards_random.append( self.play_cards[a])
+            del self.play_cards[a]
+        return self.play_cards_random
+
+# Return a card randomly
+    def random_one_card(self):
+        a=int(random.randint(0,53))
+        return self.play_cards[a]
+
+# Print red spade and diamond (only these 2 has red color)
+    def color(self):
+        b=int(random.randint(0,53))
+        x=self.play_cards[b]
+        if x[:1] in ['♥','♦']:
+            return ('\033[36;31m{0}\033[1;37;37m'.format(x))
+        else:
+            return self.play_cards[b]
+
+# use getitem to pick a card
+    def __getitem__(self, item):
+        return self.play_cards[item]
+
+# Define player
+class People():
+    def __init__(self, name, grade):
+        self.name = name
+        self.grade = grade
+
+# Define rookie player
+class Rookie(People):
+    def __init__(self, name, grade):
+        super().__init__(name, grade)
+        self.list1 = []#define a blank list to store cards
+
+    def receive(self, values):
+        """
+        define receive methods, dealer deal one card, player receive one card
+        """
+        self.list1.append(values) #store received cards in previous blank list
+        return self.list1
+
+# Define dealer
+class Dealer(People):
+    
+    def __init__(self, name, grade):
+        super().__init__(name, grade)
+        self.pcard_list = PlayCard().random_play_card()# store cards here
+
+# Define a method for dealer to deal cards
+    def shuffle(self):
+        """
+        Dealer deals cards, one card takes 0.5 seconds
+        """
+        for i in self.pcard_list:
+            yield i           
+            time.sleep(0.5)
+        #del self.pcard_list[0]
+
+# Encode A, J, Q, K, Black Joker(B), Red Joker (R) to corresponsing numbers 1, 11, 12, 13, 50, 99.
+def eq_lt_gt(a):
+    a = a[-1]
+    if a == 'J':
+        a_t = 11
+    elif a == 'Q':
+        a_t = 12
+    elif a == 'K':
+        a_t = 13
+    elif a == 'A':
+        a_t = 1
+    elif a == '0':
+        a_t = 10
+    elif a == 'B':
+        a_t = 50
+    elif a == 'R':
+        a_t = 99
+    else:
+        a_t = a
+    return int(float(a_t))
+
+# Compare list a, list b
+def pk_result(list_a, list_b):
+
+    list1 = list_a
+    list2 = list_b
+    result = list()
+    for i in range(27):
+        player1 = list1.pop()
+        player2 = list2.pop()
+        if eq_lt_gt(player1) > eq_lt_gt(player2):
+            result.append(1)
+        elif eq_lt_gt(player1) < eq_lt_gt(player2):
+            result.append(2)
+        else:
+            result.append(0)
+    return result
+
+# Start the game
+@statuslog
+def start_game(**dict):
+    result = list() # store each round of card into list
+    
+    dealer, dealer_grade = dict['0'][0], dict['0'][1]  # Dealer's info
+    rookie1, grade1 = dict['1'][0], dict['1'][1]  # Player1's info
+    rookie2, grade2 = dict['2'][0], dict['2'][1]  # Player2's info
+    
+    dea_dealer = Dealer(dealer, dealer_grade)
+
+    print("Her name is     ：" + dea_dealer.name)
+    print(dea_dealer.name + " is：" + dea_dealer.grade)
+    rookie_1 = Rookie(rookie1,grade1)
+    print("Player1 is：" + rookie_1.name +"，Player level is：" + rookie_1.grade)
+    #print(rookie_1.receive(dea_dealer.shuffle())) # Player receive one card at a time
+    rookie_2 = Rookie(rookie2, grade2)
+    print("Player2 is：" + rookie_2.name + "，player2 level is：" + rookie_2.grade)
+    n = 0
+    card_dealer = dea_dealer.shuffle()
+    for i in range(int(len(PlayCard().play_cards)/2)): # start shuffling 
+        n += 1
+        print("Player " + rookie_1.name + "'s " + str(n) + " card")
+        print(rookie_1.receive(next(card_dealer))[-1])
+        #print(rookie_1.receive(dea_dealer.shuffle()))
+        print("Player " + rookie_2.name + "'s " + str(n) + " card")
+        print(rookie_2.receive(next(card_dealer))[-1])
+        #print(rookie_2.receive(dea_dealer.shuffle()))
+    #print(dea_dealer.pcard_list)
+    print(rookie_1.name + " has：")
+    print(rookie_1.list1)# Player1's card
+    print(rookie_2.name + " has：")
+    print(rookie_2.list1)# Player2's card
+    result = pk_result(rookie_1.list1,rookie_2.list1) # Compare 2 players card in total
+    if result.count(1) > result.count(2): # Judge who is the winer
+        print(rookie_1.name + " win")
+    elif result.count(1) < result.count(2):
+        print(rookie_2.name + " win")
+    else:
+        print("Two players tie, please play again!")
+
+
+# Enter attendees information here
+def main():
+    # Define dealer, player1, player2
+    # Define player's level 
+    game_attendees = {'0': ['Amy', 'Dealer'], '1': ['Doris', '1'], '2': ['Kevin', '11']}
+    start_game(**game_attendees)
+
+
+
+if __name__ == '__main__':
+    main()
+
